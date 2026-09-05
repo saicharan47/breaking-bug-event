@@ -2,127 +2,56 @@
 
 > **Think fast. Break systems. Fix the impossible.**
 
-Breaking Bug is a browser-based, live cybersecurity and debugging competition platform built for high-pressure, multi-round campus events. Teams enter a controlled mission environment, respond to organizer-triggered events, solve timed challenges, and compete on a live leaderboard.
+Breaking Bug is a browser-based, realtime debugging and cybersecurity competition platform built for high-pressure campus events. Teams authenticate into a controlled mission environment, survive an organizer-triggered breach sequence, solve timed debugging challenges, and compete for a place beyond the Round 1 **Kill Line**.
 
-## 🎯 Competition Concept
+## ⚡ What it does
 
-Breaking Bug turns a traditional technical competition into an interactive incident-response experience. Participants are taken through a simulated system breach and then dispatched into timed technical challenges.
+- Secure team access using team code + access key
+- Organizer-triggered breach / takeover sequence
+- Realtime participant ↔ organizer synchronization
+- Shared Round 1 countdown
+- Organizer pause, resume and restart controls
+- Editable Round 1 question bank
+- Configurable round duration, question duration and question count
+- Deterministic per-team question shuffling
+- Integrity-based scoring
+- Automatic Top 25 qualification
+- Live organizer leaderboard
+- Recovery-chamber experience for advancing teams
+- Firebase Realtime Database backend
+- React + TypeScript + Vite frontend
 
-### Current Competition Flow
-
-1. **Access** — Teams enter the competition portal.
-2. **Standby** — Participants wait for organizer authorization.
-3. **Anomaly Detection** — The system introduces the incident.
-4. **System Breach** — The takeover sequence begins.
-5. **Hacker Transmission** — A live mission briefing is delivered.
-6. **Round 1: Kill Line** — Teams solve timed debugging questions.
-7. **Integrity Ranking** — Accuracy determines the primary score; completion time is used as the tiebreaker.
-8. **Top 25 Advance** — The leaderboard applies the Round 1 cutoff automatically.
-9. **Round 2 / Round 3** — Extensible competition chambers prepared for future challenges.
-
-## ✨ Platform Features
-
-- Real-time participant and organizer synchronization
-- Organizer-controlled mission launch
-- Shared Round 1 timer across teams
-- Pause, resume and restart controls
-- Dynamic Round 1 question management
-- Configurable question count and timing
-- Randomized answer ordering to reduce predictable answer patterns
-- Automatic integrity scoring
-- Live leaderboard and Top 25 qualification line
-- Firebase Realtime Database integration
-- React + TypeScript frontend
-- Vite development environment
-- Replit-friendly architecture
-
-## 🏗️ Architecture
+## 🎮 Competition Flow
 
 ```text
-Participant Browser
-       │
-       ▼
- React / TypeScript UI
-       │
-       ├── Competition Hook
-       ├── Mission Screens
-       └── Round Interfaces
-       │
-       ▼
- Firebase Realtime Database
-       │
-       ├── Competition Control
-       ├── Team State
-       ├── Round Configuration
-       ├── Round Questions
-       └── Results / Leaderboard
-       │
-       ▼
- Organizer Dashboard
+ACCESS
+  ↓
+STANDBY
+  ↓
+ANOMALY
+  ↓
+BREACH
+  ↓
+TAKEOVER
+  ↓
+HACKER TRANSMISSION
+  ↓
+ROUND 1 — KILL LINE
+  ↓
+RESULTS
+  ↓
+TOP 25
+  ↓
+MISSION CONTROL
+  ↓
+RECOVERY CHAMBERS
+  ↓
+SYSTEM RESTORED
 ```
 
-## 📁 Project Structure
+## 🏆 Round 1 — Kill Line
 
-```text
-src/
-├── components/       # Shared competition UI and mission screens
-├── data/              # Competition configuration and seed data
-├── hooks/             # Competition state and realtime logic
-├── lib/               # Firebase and application utilities
-├── pages/             # Participant and organizer interfaces
-└── services/          # Realtime communication layer
-```
-
-## 🚀 Development
-
-The project is designed to run in a Vite-compatible React environment such as Replit.
-
-### Prerequisites
-
-- Node.js 18+
-- npm / pnpm
-- Firebase project with Realtime Database enabled
-
-### Install
-
-```bash
-npm install
-```
-
-### Start development server
-
-```bash
-npm run dev
-```
-
-> The repository currently retains the dependency setup from the original development environment. If your environment uses workspace/catalog dependencies, use the corresponding package-manager configuration provided by that environment.
-
-## 🔐 Firebase Configuration
-
-Firebase client configuration belongs in the application's Firebase client configuration module. Do **not** commit service-account credentials, private keys, or other server-side secrets.
-
-For production deployments, configure Firebase security rules so participants cannot directly modify organizer-controlled state or other teams' records.
-
-## 🧑‍💻 Organizer Dashboard
-
-The organizer interface is responsible for controlling the live competition rather than allowing participants to accelerate or start the mission themselves.
-
-Round 1 controls include:
-
-- Initiate breach
-- Begin Phase 1
-- Pause
-- Resume
-- Restart Round 1
-- Compute Top 25
-- Edit questions
-- Add / delete questions
-- Configure total duration
-- Configure per-question duration
-
-## 🏆 Round 1 Scoring
-
-Round 1 uses an **Integrity** score based on the percentage of correctly solved questions.
+Round 1 measures **Integrity** rather than rewarding speed as the primary score.
 
 ```text
 Integrity = Correct Answers / Total Questions × 100
@@ -130,49 +59,170 @@ Integrity = Correct Answers / Total Questions × 100
 
 Teams are ranked by:
 
-1. Higher Integrity
-2. Lower completion time as the tiebreaker
+1. **Higher Integrity**
+2. **Lower completion time** as the tiebreaker
 
-The first **25 teams** are marked as advancing to the next round.
+The first **25 submitted teams** are marked as advancing.
 
-## 🛡️ Security Notes
+## 🖥️ Interfaces
 
-Breaking Bug is an event platform, not a production security-testing system. The simulated breach and hacker experience are presentation mechanics for the competition.
+### Participant — `/`
 
-Before a public event deployment:
+The participant portal handles authentication, standby, the cinematic breach sequence, Round 1, results, mission control and recovery chambers.
 
-- Lock down Firebase database rules.
-- Keep organizer privileges separate from participant privileges.
-- Validate all submissions server-side where possible.
-- Never expose private Firebase credentials in the frontend.
-- Do not trust client-provided scores or qualification status.
+### Organizer — `/admin`
+
+The control room provides:
+
+- Team status overview
+- Question editor
+- Add / delete / edit questions
+- Correct-answer selection
+- Round timing configuration
+- Breach dispatch
+- Phase 1 launch
+- Pause / resume / restart
+- Top 25 computation
+- Live leaderboard and Kill Line
+
+## 🏗️ Architecture
+
+```text
+┌─────────────────────┐       ┌─────────────────────┐
+│ Participant Browser │       │ Organizer Dashboard │
+│        /            │       │       /admin        │
+└──────────┬──────────┘       └──────────┬──────────┘
+           │                             │
+           └──────────────┬──────────────┘
+                          ▼
+              ┌──────────────────────┐
+              │ Firebase Realtime DB │
+              ├──────────────────────┤
+              │ competition/control  │
+              │ rounds/1/config      │
+              │ rounds/1/questions   │
+              │ teams/{teamCode}     │
+              └──────────────────────┘
+```
+
+See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the state model and event-control flow.
+
+## 📁 Project Structure
+
+```text
+breaking-bug-event/
+├── docs/
+│   ├── ARCHITECTURE.md
+│   └── FIREBASE_SETUP.md
+├── public/
+│   ├── favicon.svg
+│   └── robots.txt
+├── src/
+│   ├── components/
+│   │   ├── error-boundary.tsx
+│   │   ├── system-frame.tsx
+│   │   └── takeover.tsx
+│   ├── data/
+│   │   ├── competition.ts
+│   │   └── takeover.ts
+│   ├── hooks/
+│   │   └── useCompetition.ts
+│   ├── lib/
+│   │   ├── firebase-client.ts
+│   │   ├── firebase.ts
+│   │   └── utils.ts
+│   ├── pages/
+│   │   ├── admin.tsx
+│   │   ├── not-found.tsx
+│   │   └── participant.tsx
+│   ├── services/
+│   │   └── realtime.ts
+│   ├── App.tsx
+│   ├── index.css
+│   └── main.tsx
+├── .env.example
+├── .gitignore
+├── components.json
+├── index.html
+├── package.json
+├── tsconfig.json
+└── vite.config.ts
+```
+
+## 🚀 Run locally
+
+### Requirements
+
+- Node.js 18+
+- npm
+- A Firebase project with Anonymous Authentication and Realtime Database enabled
+
+### Install
+
+```bash
+npm install
+```
+
+### Configure Firebase
+
+```bash
+cp .env.example .env.local
+```
+
+Fill the Firebase Web App values in `.env.local`. Never commit `.env.local` or private service-account credentials.
+
+### Start
+
+```bash
+npm run dev
+```
+
+### Validate
+
+```bash
+npm run typecheck
+npm run build
+```
+
+## 🔥 Firebase
+
+The application can run without Firebase configuration for UI development, but realtime competition behavior requires Firebase.
+
+Detailed setup and recommended production security rules are documented in [`docs/FIREBASE_SETUP.md`](docs/FIREBASE_SETUP.md).
+
+## 🔐 Security
+
+Breaking Bug simulates a breach; it is not a real penetration-testing system. Before an event deployment:
+
+- Restrict organizer writes to authenticated organizer identities.
+- Prevent participants from modifying scores, qualification, or control state.
+- Isolate team data so one team cannot read another team's answers.
+- Validate scoring and qualification server-side where possible.
+- Keep secrets out of source control.
 
 ## 🗺️ Roadmap
 
 - [x] Participant mission flow
-- [x] Organizer control panel
+- [x] Organizer control room
 - [x] Firebase realtime synchronization
 - [x] Shared Round 1 timer
 - [x] Pause / resume / restart controls
 - [x] Dynamic Round 1 question editor
 - [x] Integrity-based Top 25 qualification
-- [ ] Production-grade Firebase security rules
+- [x] Standalone Vite/npm project structure
+- [ ] Hardened Firebase security rules
 - [ ] Round 2 challenge engine
 - [ ] Round 3 challenge engine
-- [ ] Final event analytics
-- [ ] Deployment and event-day runbook
+- [ ] Event analytics
+- [ ] Deployment runbook
 
-## 📜 Event Documentation
+## 👥 Event Operations
 
-Operational documentation, event rules, participant handbook, and deployment notes should live under `docs/` as the competition specification evolves.
-
-## 🤝 Development
-
-Breaking Bug is developed as a live event platform for campus technical competitions. Contributions should keep participant experience, organizer control, realtime consistency, and event-day reliability as first-class priorities.
+The codebase is intentionally structured around event-day reliability: the organizer owns timing and dispatch, while participants consume the shared competition state.
 
 ## 📄 License
 
-This project is currently maintained for the Breaking Bug competition. Licensing and public redistribution terms can be added before open-source release.
+This repository is maintained for the Breaking Bug competition. Licensing terms can be formalized before public redistribution.
 
 ---
 
