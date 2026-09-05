@@ -1,0 +1,8 @@
+run = "npm run dev"
+entrypoint = "index.html"
+
+[deployment]
+run = ["npm", "run", "dev"]
+
+[env]
+NODE_ENV = "development"
