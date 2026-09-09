@@ -21,9 +21,14 @@ export async function getFirebaseDatabase() {
   if (!database) {
     const app = getApps().length ? getApp() : initializeApp(config);
     database = getDatabase(app);
-    authAttempt ||= signInAnonymously(getAuth(app)).then(() => undefined).catch((error: unknown) => {
-      console.warn('[breaking-bug] Anonymous Firebase auth unavailable; continuing with configured database rules.', error);
-    });
+    const auth = getAuth(app);
+    authAttempt ||= signInAnonymously(auth)
+      .then(() => undefined)
+      .catch((error: unknown) => {
+        const code = error && typeof error === 'object' && 'code' in error ? String((error as { code?: unknown }).code) : 'unknown';
+        console.error('[breaking-bug] Anonymous Firebase auth failed.', error);
+        throw new Error(`Firebase anonymous authentication failed (${code}). Check Firebase Authentication and Authorized Domains.`);
+      });
   }
   await authAttempt;
   return database;
