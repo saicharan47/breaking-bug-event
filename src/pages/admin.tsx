@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ChevronRight, Plus, RotateCcw, Save, Trash2, Trophy } from 'lucide-react';
+import { Activity, ChevronRight, Plus, RotateCcw, Save, ShieldAlert, Trash2, Trophy, Users } from 'lucide-react';
 import { computePhaseOneResults, ensureTeamsSeeded, getRoundConfig, getRoundQuestions, resetCompetition, saveRoundConfig, saveRoundQuestions, startSharedPhaseOne, pauseSharedPhaseOne, resumeSharedPhaseOne, restartSharedPhaseOne, watchTeams, type TeamRecord, type RoundConfig } from '@/lib/firebase';
 import { realtime } from '@/services/realtime';
 import { debugQuestions, type DebugQuestion } from '@/data/competition';
