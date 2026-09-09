@@ -19,7 +19,13 @@ export type Chamber = {
 };
 
 export const demoCredentials = { teamCode: 'KNIGHT-4401', accessKey: 'BUG-2024' };
-export type SeedTeam = { teamCode: string; accessKey: string; name: string };
+
+export type SeedTeam = {
+  teamCode: string;
+  accessKey: string;
+  name: string;
+};
+
 export const seedTeams: SeedTeam[] = [
   { teamCode: demoCredentials.teamCode, accessKey: demoCredentials.accessKey, name: 'BYTE-KNIGHTS' },
   ...Array.from({ length: 49 }, (_, index) => {
@@ -50,6 +56,7 @@ const questionSeeds: Array<[string, string, string, string[]]> = [
   ['Retry storm', 'catch(() => retry());', 'What guard prevents runaway retries?', ['backoff and a retry limit', 'a larger payload', 'a second catch only', 'removing the error']],
   ['Secret handling', 'logger.info("request", { token, headers });', 'What should be removed from this log?', ['credentials and sensitive headers', 'the request label', 'the timestamp', 'all structured fields']],
 ];
+
 const extraSeeds: Array<[string, string, string, string[]]> = [
   ['Memory safety','const value = cache[key]; cache[key] = transform(value);','What should be verified before transforming the value?',['That the key exists and the value has the expected shape','That CSS is loaded','That the browser is maximized','That the key is uppercase']],
   ['Access control','if (user.isAdmin) return secretData;','What is the critical security requirement?',['A server-side authorization check','A hidden button','A longer variable name','A loading spinner']],
@@ -62,12 +69,12 @@ const extraSeeds: Array<[string, string, string, string[]]> = [
   ['Data exposure','return res.json({user, internalToken});','What should be excluded from the response?',['Internal credentials or secrets','The user identifier','The response status','Public profile fields']],
   ['Boundary testing','validate(age >= 18);','Which tests are most valuable around this boundary?',['Values just below, at, and above 18','Only the value 100','Only negative values','No tests']],
 ];
-const allSeeds = questionSeeds.concat(extraSeeds);
+const allSeeds = questionSeeds.concat(extraSeeds)
 export const debugQuestions: DebugQuestion[] = allSeeds.map((seed, index) => {
-  const shift = (index * 3) % 4;
-  const rotated = seed[3].map((_, j) => seed[3][(j + shift) % 4]);
-  return { id:index+1, topic:seed[0], code:seed[1], prompt:seed[2], options:rotated.map((label,j)=>({id:String.fromCharCode(65+j),label})), answer:String.fromCharCode(65 + ((4-shift)%4)) };
-});
+  const shift = (index * 3) % 4
+  const rotated = seed[3].map((_, j) => seed[3][(j + shift) % 4])
+  return { id:index+1, topic:seed[0], code:seed[1], prompt:seed[2], options:rotated.map((label,j)=>({id:String.fromCharCode(65+j),label})), answer:String.fromCharCode(65 + ((4-shift)%4)) }
+})
 
 export const chambers: Chamber[] = [
   { id: 1, name: 'Cold Start', subtitle: 'Re-establish the process', briefing: 'The recovery daemon is dormant. Identify the first safe action before touching production state.', options: [{ id: 'A', label: 'Read current health and ownership signals' }, { id: 'B', label: 'Restart every worker immediately' }, { id: 'C', label: 'Delete the stale queue' }, { id: 'D', label: 'Disable alerting' }], answer: 'A' },
