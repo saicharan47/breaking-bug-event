@@ -23,6 +23,8 @@ export type SeedTeam = {
   name: string;
 };
 
+export const demoCredentials = { teamCode: 'TEAM-CODE', accessKey: 'ACCESS-KEY' };
+
 export const seedTeams: SeedTeam[] = [
   { teamCode: 'KNIGHT-4401', name: 'BYTE-KNIGHTS' },
   ...Array.from({ length: 49 }, (_, index) => {
