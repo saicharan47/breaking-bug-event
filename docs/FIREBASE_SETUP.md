@@ -2,9 +2,9 @@
 
 Breaking Bug uses Firebase Authentication (anonymous sign-in) and Firebase Realtime Database.
 
-## 1. Create / select a Firebase project
+## 1. Create / select the Firebase project
 
-Create a Firebase project for the event and register a Web App.
+The current production Firebase project is **`breakingbug-prod`**. Register a Web App in that project.
 
 ## 2. Enable Authentication
 
@@ -12,7 +12,7 @@ Enable **Anonymous** sign-in under Firebase Authentication.
 
 ## 3. Enable Realtime Database
 
-Create a Realtime Database instance and copy its database URL.
+Create a Realtime Database instance in `breakingbug-prod` and use its database URL in local environment configuration when needed.
 
 ## 4. Configure environment variables
 
@@ -28,7 +28,9 @@ VITE_FIREBASE_MESSAGING_SENDER_ID=
 VITE_FIREBASE_APP_ID=
 ```
 
-The Firebase Web SDK configuration is safe to ship as client configuration. **Never** put service-account JSON, private keys, or Admin SDK credentials in these variables or in the repository.
+The production client configuration is pinned to the `breakingbug-prod` Firebase Web App in `src/lib/firebase-client.ts`. The Firebase Web SDK configuration is safe to ship as client configuration. **Never** put service-account JSON, private keys, or Admin SDK credentials in these variables or in the repository.
+
+For GitHub Actions, add the new Web App API key as the repository secret **`FIREBASE_API_KEY`**. The CI anonymous-auth smoke test reads that secret and validates anonymous sign-in against the new project.
 
 ## 5. Database shape
 
