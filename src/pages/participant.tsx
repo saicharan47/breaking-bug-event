@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowRight, Check, ChevronRight, LockKeyhole, RotateCcw } from 'lucide-react';
-import { chambers, demoCredentials } from '@/data/competition';
+import { chambers } from '@/data/competition';
 import { transientHackerMessages } from '@/data/takeover';
 import { useCompetition } from '@/hooks/useCompetition';
 import { Button, Label, SystemFrame, Timer } from '@/components/system-frame';
@@ -45,10 +45,10 @@ function AccessScreen({ stage, authenticate, authError }: ReturnType<typeof useC
           <label className="mb-2 block font-mono text-[10px] uppercase tracking-[.12em] text-dim">Team code</label>
           <input data-testid="input-team-code" value={teamCode} onChange={(e) => setTeamCode(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && submit()} className="input-system mb-5 h-11 w-full px-3 font-mono text-xs uppercase" placeholder="KNIGHT-4401" disabled={authenticating} />
           <label className="mb-2 block font-mono text-[10px] uppercase tracking-[.12em] text-dim">Access key</label>
-          <input data-testid="input-access-key" value={accessKey} onChange={(e) => setAccessKey(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && submit()} className="input-system mb-3 h-11 w-full px-3 font-mono text-xs" placeholder="BUG-2024" type="password" disabled={authenticating} />
-           {(error || authError) && <p data-testid="status-auth-error" className="mb-4 text-xs text-breach">{error || authError}</p>}
+          <input data-testid="input-access-key" value={accessKey} onChange={(e) => setAccessKey(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && submit()} className="input-system mb-3 h-11 w-full px-3 font-mono text-xs" placeholder="Enter access key" type="password" disabled={authenticating} />
+          {(error || authError) && <p data-testid="status-auth-error" className="mb-4 text-xs text-breach">{error || authError}</p>}
           <Button testId="button-enter-portal" onClick={submit} disabled={authenticating}>{authenticating ? 'Authenticating...' : 'Enter portal'} <ArrowRight size={13} className="ml-3 inline" /></Button>
-          <div className="mt-7 border-t border-[hsl(var(--border))] pt-4 font-mono text-[9px] leading-5 text-dim">DEMO CHANNEL<br /><span className="text-[#b7c0b5]">{demoCredentials.teamCode}</span> / <span className="text-[#b7c0b5]">{demoCredentials.accessKey}</span></div>
+          <div className="mt-7 border-t border-[hsl(var(--border))] pt-4 font-mono text-[9px] leading-5 text-dim">Credentials are issued privately by the organizer.<br /><span className="text-[#b7c0b5]">No demo credentials are embedded in this client.</span></div>
         </div>
       </section>
     </SystemFrame>
