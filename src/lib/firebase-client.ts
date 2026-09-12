@@ -3,18 +3,18 @@ import { getAuth, signInAnonymously } from 'firebase/auth';
 import { getDatabase, type Database } from 'firebase/database';
 
 // This is the public Firebase Web App config shown by Firebase Console for
-// breaking-bug-01. Firebase web config values are identifiers, not secrets.
+// breakingbug-prod. Firebase web config values are identifiers, not secrets.
 // Keeping the console config here prevents a stale/mistyped local .env from
 // silently pointing Firebase Auth at the wrong API key.
 const FIREBASE_CONFIG = {
-  apiKey: 'AIzaSyD5pM0ExZ1fI6FTzytcksy4CkT_zbZQu0c',
-  authDomain: 'breaking-bug-01.firebaseapp.com',
-  databaseURL: 'https://breaking-bug-01-default-rtdb.asia-southeast1.firebasedatabase.app/',
-  projectId: 'breaking-bug-01',
-  storageBucket: 'breaking-bug-01.firebasestorage.app',
-  messagingSenderId: '593513479651',
-  appId: '1:593513479651:web:0159352878bb95612934d6',
-  measurementId: 'G-12JGZX2NZM',
+  apiKey: 'AIzaSyDZjaSBDWFHod4CCacXK5BjtxWoP5JuaoI',
+  authDomain: 'breakingbug-prod.firebaseapp.com',
+  databaseURL: 'https://breakingbug-prod-default-rtdb.asia-southeast1.firebasedatabase.app',
+  projectId: 'breakingbug-prod',
+  storageBucket: 'breakingbug-prod.firebasestorage.app',
+  messagingSenderId: '280045451159',
+  appId: '1:280045451159:web:5d82167cc9fbff2f2d76d2',
+  measurementId: 'G-FGYZWGPGZQ',
 } as const;
 
 // Keep the environment variables as an explicit opt-in override for a future
