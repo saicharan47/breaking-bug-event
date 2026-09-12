@@ -18,19 +18,16 @@ export type Chamber = {
   answer: string;
 };
 
-export const demoCredentials = { teamCode: 'KNIGHT-4401', accessKey: 'BUG-2024' };
-
 export type SeedTeam = {
   teamCode: string;
-  accessKey: string;
   name: string;
 };
 
 export const seedTeams: SeedTeam[] = [
-  { teamCode: demoCredentials.teamCode, accessKey: demoCredentials.accessKey, name: 'BYTE-KNIGHTS' },
+  { teamCode: 'KNIGHT-4401', name: 'BYTE-KNIGHTS' },
   ...Array.from({ length: 49 }, (_, index) => {
     const number = String(index + 2).padStart(2, '0');
-    return { teamCode: `BYTE-${number}`, accessKey: `BUG-${String(2024 + index + 1)}`, name: `BYTE-TEAM-${number}` };
+    return { teamCode: `BYTE-${number}`, name: `BYTE-TEAM-${number}` };
   }),
 ];
 
