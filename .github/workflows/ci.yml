@@ -25,6 +25,8 @@ jobs:
         run: npm install
 
       - name: Firebase anonymous-auth smoke test
+        env:
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
         run: node scripts/firebase-auth-smoke.mjs
 
       - name: Typecheck
