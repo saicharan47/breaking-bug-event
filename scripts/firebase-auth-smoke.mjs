@@ -1,4 +1,10 @@
-const apiKey = 'AIzaSyD5pM0ExZ1fI6FTzytcksy4CkT_zbZQu0c';
+const apiKey = process.env.FIREBASE_API_KEY;
+
+if (!apiKey) {
+  console.error('Firebase anonymous-auth smoke test failed: FIREBASE_API_KEY is not configured.');
+  process.exit(1);
+}
+
 const endpoint = `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${encodeURIComponent(apiKey)}`;
 
 const response = await fetch(endpoint, {
@@ -20,4 +26,4 @@ if (!body?.idToken || !body?.localId) {
   process.exit(1);
 }
 
-console.log('Firebase anonymous-auth smoke test passed for breaking-bug-01.');
+console.log('Firebase anonymous-auth smoke test passed.');
