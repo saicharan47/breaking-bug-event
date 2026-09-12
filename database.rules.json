@@ -28,6 +28,10 @@
           ".write": "auth != null && auth.provider === 'anonymous' && data.parent().child('authUid').val() === auth.uid && (newData.val() === 'connected' || newData.val() === 'in-progress' || newData.val() === 'submitted')",
           ".validate": "newData.isString()"
         },
+        "submittedAt": {
+          ".write": "auth != null && auth.provider === 'anonymous' && data.parent().child('authUid').val() === auth.uid && !data.exists()",
+          ".validate": "newData.isNumber()"
+        },
         "questionOrder": {
           ".write": "auth != null && auth.provider === 'anonymous' && data.parent().child('authUid').val() === auth.uid",
           ".validate": "newData.hasChildren()"
@@ -48,7 +52,7 @@
     "teamClaims": {
       "$teamCode": {
         ".read": "auth != null && (auth.token.email === 'saicharan.ak477@gmail.com' || data.child('uid').val() === auth.uid)",
-        ".write": "auth != null && auth.provider === 'anonymous' && !data.exists() && newData.child('uid').val() === auth.uid && newData.child('accessKey').val() === root.child('teams').child($teamCode).child('accessKey').val()",
+        ".write": "auth != null && ((auth.provider === 'anonymous' && !data.exists() && newData.child('uid').val() === auth.uid && newData.child('accessKey').val() === root.child('teams').child($teamCode).child('accessKey').val()) || (data.child('uid').val() === auth.uid && !newData.exists()))",
         ".validate": "newData.hasChildren(['uid', 'accessKey']) && newData.child('uid').isString() && newData.child('accessKey').isString()"
       }
     },
