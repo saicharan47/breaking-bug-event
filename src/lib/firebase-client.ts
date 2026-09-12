@@ -23,6 +23,8 @@ const FIREBASE_CONFIG = {
   measurementId: 'G-FGYZWGPGZQ',
 } as const;
 
+const ORGANIZER_EMAIL = 'saicharan.ak477@gmail.com';
+
 const useEnvironmentConfig = import.meta.env.VITE_FIREBASE_USE_ENV === 'true';
 const config = useEnvironmentConfig
   ? {
@@ -60,10 +62,10 @@ export function watchFirebaseAuth(callback: (user: User | null) => void) {
   return onAuthStateChanged(getFirebaseAuth(), callback);
 }
 
-export async function signInOrganizer(username: string, password: string) {
-  if (username.trim().toLowerCase() !== 'sai') throw new Error('Invalid organizer credentials.');
-  const credential = await signInWithEmailAndPassword(getFirebaseAuth(), 'sai@breakingbug.local', password);
-  if (credential.user.email !== 'sai@breakingbug.local') {
+export async function signInOrganizer(email: string, password: string) {
+  if (email.trim().toLowerCase() !== ORGANIZER_EMAIL) throw new Error('Invalid organizer credentials.');
+  const credential = await signInWithEmailAndPassword(getFirebaseAuth(), ORGANIZER_EMAIL, password);
+  if (credential.user.email?.toLowerCase() !== ORGANIZER_EMAIL) {
     await signOut(getFirebaseAuth());
     throw new Error('Organizer account is not authorized.');
   }
