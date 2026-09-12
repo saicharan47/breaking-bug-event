@@ -5,14 +5,17 @@
     "teams": {
       "$teamCode": {
         ".read": "auth != null && (auth.token.email === 'saicharan.ak477@gmail.com' || data.child('authUid').val() === auth.uid)",
-        ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
         "authUid": {
           ".write": "auth != null && auth.provider === 'anonymous' && !data.exists() && newData.isString() && newData.val() === auth.uid && root.child('teamClaims').child($teamCode).child('uid').val() === auth.uid",
           ".validate": "newData.isString()"
         },
+        "accessKey": {
+          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
+          ".validate": "newData.isString()"
+        },
         "answers": {
           "$questionId": {
-            ".write": "auth != null && auth.provider === 'anonymous' && data.parent().parent().child('authUid').val() === auth.uid && newData.isString()",
+            ".write": "auth != null && auth.provider === 'anonymous' && data.parent().parent().child('authUid').val() === auth.uid && newData.isString() && newData.val().matches(/^[A-D]$/)",
             ".validate": "newData.isString() && newData.val().matches(/^[A-D]$/)"
           }
         },
@@ -25,8 +28,8 @@
           ".validate": "newData.isNumber()"
         },
         "status": {
-          ".write": "auth != null && auth.provider === 'anonymous' && data.parent().child('authUid').val() === auth.uid && (newData.val() === 'connected' || newData.val() === 'in-progress' || newData.val() === 'submitted')",
-          ".validate": "newData.isString()"
+          ".write": "auth != null && auth.provider === 'anonymous' && data.parent().child('authUid').val() === auth.uid && ((data.val() === 'connected' && newData.val() === 'in-progress') || (data.val() === 'in-progress' && newData.val() === 'submitted') || (data.val() === 'connected' && newData.val() === 'submitted'))",
+          ".validate": "newData.isString() && (newData.val() === 'connected' || newData.val() === 'in-progress' || newData.val() === 'submitted')"
         },
         "submittedAt": {
           ".write": "auth != null && auth.provider === 'anonymous' && data.parent().child('authUid').val() === auth.uid && !data.exists()",
@@ -44,8 +47,28 @@
           ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
           ".validate": "newData.isNumber()"
         },
+        "recovery": {
+          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
+          ".validate": "newData.isNumber()"
+        },
+        "corruption": {
+          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
+          ".validate": "newData.isNumber()"
+        },
+        "integrity": {
+          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
+          ".validate": "newData.isNumber()"
+        },
+        "netScore": {
+          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
+          ".validate": "newData.isNumber()"
+        },
+        "advanced": {
+          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
+          ".validate": "newData.isBoolean()"
+        },
         "$other": {
-          ".validate": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'"
+          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'"
         }
       }
     },
@@ -61,8 +84,24 @@
       ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'"
     },
     "rounds": {
-      ".read": "auth != null",
-      ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'"
+      ".read": false,
+      ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
+      "$round": {
+        ".read": false,
+        ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
+        "publicQuestions": {
+          ".read": "auth != null",
+          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'"
+        },
+        "config": {
+          ".read": "auth != null",
+          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'"
+        },
+        "questions": {
+          ".read": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
+          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'"
+        }
+      }
     }
   }
 }
