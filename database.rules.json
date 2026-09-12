@@ -1,0 +1,64 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "teams": {
+      "$teamCode": {
+        ".read": "auth != null && (auth.token.email === 'saicharan.ak477@gmail.com' || data.child('authUid').val() === auth.uid)",
+        ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
+        "authUid": {
+          ".write": "auth != null && auth.provider === 'anonymous' && !data.exists() && newData.isString() && newData.val() === auth.uid && root.child('teamClaims').child($teamCode).child('uid').val() === auth.uid",
+          ".validate": "newData.isString()"
+        },
+        "answers": {
+          "$questionId": {
+            ".write": "auth != null && auth.provider === 'anonymous' && data.parent().parent().child('authUid').val() === auth.uid && newData.isString()",
+            ".validate": "newData.isString() && newData.val().matches(/^[A-D]$/)"
+          }
+        },
+        "connectedAt": {
+          ".write": "auth != null && auth.provider === 'anonymous' && data.parent().child('authUid').val() === auth.uid",
+          ".validate": "newData.isNumber()"
+        },
+        "lastSeenAt": {
+          ".write": "auth != null && auth.provider === 'anonymous' && data.parent().child('authUid').val() === auth.uid",
+          ".validate": "newData.isNumber()"
+        },
+        "status": {
+          ".write": "auth != null && auth.provider === 'anonymous' && data.parent().child('authUid').val() === auth.uid && (newData.val() === 'connected' || newData.val() === 'in-progress' || newData.val() === 'submitted')",
+          ".validate": "newData.isString()"
+        },
+        "questionOrder": {
+          ".write": "auth != null && auth.provider === 'anonymous' && data.parent().child('authUid').val() === auth.uid",
+          ".validate": "newData.hasChildren()"
+        },
+        "runId": {
+          ".write": "auth != null && auth.provider === 'anonymous' && data.parent().child('authUid').val() === auth.uid",
+          ".validate": "newData.isString()"
+        },
+        "phase1StartedAt": {
+          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
+          ".validate": "newData.isNumber()"
+        },
+        "$other": {
+          ".validate": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'"
+        }
+      }
+    },
+    "teamClaims": {
+      "$teamCode": {
+        ".read": "auth != null && (auth.token.email === 'saicharan.ak477@gmail.com' || data.child('uid').val() === auth.uid)",
+        ".write": "auth != null && auth.provider === 'anonymous' && !data.exists() && newData.child('uid').val() === auth.uid && newData.child('accessKey').val() === root.child('teams').child($teamCode).child('accessKey').val()",
+        ".validate": "newData.hasChildren(['uid', 'accessKey']) && newData.child('uid').isString() && newData.child('accessKey').isString()"
+      }
+    },
+    "competition": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'"
+    },
+    "rounds": {
+      ".read": "auth != null",
+      ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'"
+    }
+  }
+}
