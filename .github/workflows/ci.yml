@@ -33,4 +33,6 @@ jobs:
         run: npm run typecheck
 
       - name: Build
+        env:
+          VITE_FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
         run: npm run build
