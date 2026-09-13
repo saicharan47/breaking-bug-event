@@ -32,7 +32,7 @@
         "answers": {
           ".read": "auth != null && data.parent().child('authUid').val() === auth.uid",
           "$questionId": {
-            ".write": "auth != null && auth.provider === 'anonymous' && data.parent().parent().child('authUid').val() === auth.uid && !data.exists() && root.child('competition').child('control').child('command').val() in ['phase1-start','phase1-resume'] && root.child('competition').child('control').child('phase1StartedAt').isNumber() && root.child('competition').child('control').child('phase1DurationSeconds').isNumber() && now < root.child('competition').child('control').child('phase1StartedAt').val() + root.child('competition').child('control').child('phase1DurationSeconds').val() * 1000 && newData.isString() && newData.val().matches(/^[A-D]$/)",
+            ".write": "auth != null && auth.provider === 'anonymous' && data.parent().parent().child('authUid').val() === auth.uid && !data.exists() && (root.child('competition').child('control').child('command').val() === 'phase1-start' || root.child('competition').child('control').child('command').val() === 'phase1-resume') && root.child('competition').child('control').child('phase1StartedAt').isNumber() && root.child('competition').child('control').child('phase1DurationSeconds').isNumber() && now < root.child('competition').child('control').child('phase1StartedAt').val() + root.child('competition').child('control').child('phase1DurationSeconds').val() * 1000 && newData.isString() && newData.val().matches(/^[A-D]$/)",
             ".validate": "newData.isString() && newData.val().matches(/^[A-D]$/)"
           }
         },
