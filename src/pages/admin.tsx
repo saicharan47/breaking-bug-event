@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { ChevronRight, KeyRound, Plus, RotateCcw, Save, ShieldAlert, Trash2, Trophy } from 'lucide-react';
-import { get, ref, set } from 'firebase/database';
-import { computePhaseOneResults, ensureTeamsSeeded, getFirebaseDatabase, getRoundConfig, getRoundQuestions, resetCompetition, saveRoundConfig, saveRoundQuestions, startSharedPhaseOne, pauseSharedPhaseOne, resumeSharedPhaseOne, restartSharedPhaseOne, watchTeams, type TeamRecord, type RoundConfig } from '@/lib/firebase';
+import { ref, set } from 'firebase/database';
+import { computePhaseOneResults, ensureTeamsSeeded, getRoundConfig, getRoundQuestions, resetCompetition, saveRoundConfig, saveRoundQuestions, startSharedPhaseOne, pauseSharedPhaseOne, resumeSharedPhaseOne, restartSharedPhaseOne, watchTeams, type TeamRecord, type RoundConfig } from '@/lib/firebase';
+import { getFirebaseDatabase } from '@/lib/firebase-client';
 import { realtime } from '@/services/realtime';
 import { debugQuestions, type DebugQuestion } from '@/data/competition';
 import { Button, Label, SystemFrame } from '@/components/system-frame';
