@@ -3,34 +3,264 @@ import { publicQuestions, type PublicDebugQuestion } from '@/data/public-questio
 import { authenticateTeam, getCompetitionControl, getPublicRoundQuestions, getRoundConfig, getTeam, saveTeamAnswer, submitTeamPhaseOne, updateTeam, watchTeam } from '@/lib/firebase';
 import { publishTakeoverEvent, realtime } from '@/services/realtime';
 
-export type ParticipantStage='access'|'authenticating'|'standby'|'anomaly'|'breach'|'takeover'|'transmission'|'phase1'|'results'|'mission'|'chambers'|'restored';
-const sessionKey=(t:string)=>`breaking-bug:team:${t}`;
-function shuffle(q:PublicDebugQuestion[],team:string){const a=[...q];let seed=[...team].reduce((s,c)=>(s*31+c.charCodeAt(0))>>>0,7);for(let i=a.length-1;i>0;i--){seed=(seed*1664525+1013904223)>>>0;const j=seed%(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;}
+export type ParticipantStage = 'access' | 'authenticating' | 'standby' | 'anomaly' | 'breach' | 'takeover' | 'transmission' | 'phase1' | 'results' | 'mission' | 'chambers' | 'restored';
+const sessionKey = (t: string) => `breaking-bug:team:${t}`;
+function shuffle(q: PublicDebugQuestion[], team: string) {
+  const a = [...q];
+  let seed = [...team].reduce((s, c) => (s * 31 + c.charCodeAt(0)) >>> 0, 7);
+  for (let i = a.length - 1; i > 0; i--) {
+    seed = (seed * 1664525 + 1013904223) >>> 0;
+    const j = seed % (i + 1);
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
-export function useCompetition(){
- const [stage,setStage]=useState<ParticipantStage>('access'),[team,setTeam]=useState(''),[questions,setQuestions]=useState<PublicDebugQuestion[]>([]),[questionIndex,setQuestionIndex]=useState(0),[answers,setAnswers]=useState<Record<number,string>>({}),[overallSeconds,setOverallSeconds]=useState(840),[questionSeconds,setQuestionSeconds]=useState(35),[breachStep,setBreachStep]=useState(0),[questionReady,setQuestionReady]=useState(false),[authError,setAuthError]=useState(''),[advanced,setAdvanced]=useState(false),[correct,setCorrect]=useState(0),[integrity,setIntegrity]=useState(0),[phase1StartedAt,setPhase1StartedAt]=useState<number|null>(null),[questionStartedAt,setQuestionStartedAt]=useState<number|null>(null),[paused,setPaused]=useState(false),[config,setConfig]=useState({durationSeconds:840,questionDurationSeconds:35,questionCount:30,advanceCount:25});
- const stageRef=useRef(stage),teamRef=useRef(team),phase1FinalizedRef=useRef(false),answersRef=useRef(answers),overallSecondsRef=useRef(overallSeconds),phase1StartedAtRef=useRef<number|null>(phase1StartedAt),questionStartedAtRef=useRef<number|null>(questionStartedAt),pausedRef=useRef(paused);
- stageRef.current=stage;teamRef.current=team;answersRef.current=answers;overallSecondsRef.current=overallSeconds;phase1StartedAtRef.current=phase1StartedAt;questionStartedAtRef.current=questionStartedAt;pausedRef.current=paused;
- const persist=useCallback((t:string,s:ParticipantStage)=>{if(typeof window!=='undefined')sessionStorage.setItem(sessionKey(t),JSON.stringify({teamCode:t,stage:s}))},[]);
- const reset=useCallback(()=>{phase1FinalizedRef.current=false;if(teamRef.current)sessionStorage.removeItem(sessionKey(teamRef.current));setStage('access');setTeam('');setQuestions([]);setQuestionIndex(0);setAnswers({});setOverallSeconds(840);setQuestionSeconds(35);setBreachStep(0);setQuestionReady(false);setAuthError('');setAdvanced(false);setCorrect(0);setIntegrity(0);setPhase1StartedAt(null);setQuestionStartedAt(null);setPaused(false)},[]);
- const finalizePhaseOne=useCallback(()=>{if(phase1FinalizedRef.current||!teamRef.current)return;phase1FinalizedRef.current=true;setQuestionReady(false);setQuestionStartedAt(null);const currentTeam=teamRef.current;setOverallSeconds(0);overallSecondsRef.current=0;setQuestionSeconds(0);setStage('results');persist(currentTeam,'results');void submitTeamPhaseOne(currentTeam).catch(error=>{console.error('[breaking-bug] Phase 1 finalization failed.',error)});},[persist]);
- const beginTakeover=useCallback(()=>{publishTakeoverEvent('breach_start');publishTakeoverEvent('system_glitch');setStage('anomaly');setBreachStep(0)},[]);
- useEffect(()=>realtime.connect(m=>{if(m.type==='breach'&&(stageRef.current==='standby'||stageRef.current==='access'))beginTakeover();if(m.type==='reset')reset();if(m.type==='phase1-start'&&m.phase1StartedAt){phase1FinalizedRef.current=false;setPhase1StartedAt(m.phase1StartedAt);setQuestionStartedAt(null);setPaused(false);setStage('phase1');persist(teamRef.current,'phase1')}if(m.type==='phase1-pause'){setPaused(true);if(stageRef.current!=='results')setStage('phase1')}if(m.type==='phase1-resume'&&m.phase1StartedAt){setPhase1StartedAt(m.phase1StartedAt);setQuestionStartedAt(null);setPaused(false);setStage('phase1')}if(m.type==='results'){setStage('results');setQuestionReady(false);setQuestionStartedAt(null)}}),[beginTakeover,persist,reset]);
- useEffect(()=>{if(!team)return;return watchTeam(team,r=>{if(!r)return;setAdvanced(Boolean(r.advanced));setCorrect(Number(r.recovery??0));setIntegrity(Number(r.integrity??0));if(r.answers)setAnswers(Object.fromEntries(Object.entries(r.answers).map(([k,v])=>[Number(k),v])));if(r.phase1StartedAt)setPhase1StartedAt(r.phase1StartedAt);if(r.status==='submitted'){phase1FinalizedRef.current=true;setQuestionReady(false);setQuestionStartedAt(null);setOverallSeconds(0);setQuestionSeconds(0);setStage('results')}})},[team]);
- useEffect(()=>{if(!team)return;const heartbeat=window.setInterval(()=>{void updateTeam(teamRef.current,{lastSeenAt:Date.now()}).catch(error=>console.warn('[breaking-bug] Heartbeat update failed.',error))},15000);return()=>window.clearInterval(heartbeat)},[team]);
- useEffect(()=>{let dead=false;(async()=>{if(typeof window==='undefined')return;const key=Object.keys(sessionStorage).find(k=>k.startsWith('breaking-bug:team:'));if(!key)return;const saved=JSON.parse(sessionStorage.getItem(key)||'{}') as {teamCode?:string;stage?:ParticipantStage};if(!saved.teamCode)return;try{const [r,c,qs,cfg]=await Promise.all([getTeam(saved.teamCode),getCompetitionControl(),getPublicRoundQuestions(1),getRoundConfig(1)]);if(dead||!r)return;setTeam(r.teamCode);setQuestions(shuffle(qs.length?qs:publicQuestions,r.teamCode).slice(0,cfg.questionCount||30));setAnswers(Object.fromEntries(Object.entries(r.answers??{}).map(([k,v])=>[Number(k),v])));setAdvanced(Boolean(r.advanced));setCorrect(Number(r.recovery??0));setIntegrity(Number(r.integrity??0));setConfig(cfg);setPhase1StartedAt(r.phase1StartedAt??c?.phase1StartedAt??null);const activePhase=c?.command==='phase1-start'||c?.command==='phase1-pause'||c?.command==='phase1-resume'||Boolean(r.phase1StartedAt);setPaused(c?.command==='phase1-pause');if(r.status==='submitted')phase1FinalizedRef.current=true;const recoveryStage=saved.stage&&['anomaly','breach','takeover','transmission','mission','chambers','restored'].includes(saved.stage)?saved.stage:undefined;setStage(r.status==='submitted'?'results':recoveryStage??(activePhase?'phase1':'standby'));}catch(error){console.error('[breaking-bug] Session recovery failed.',error)}})();return()=>{dead=true}},[]);
- useEffect(()=>{if(stage!=='anomaly')return;const t=setTimeout(()=>setStage('breach'),1250);return()=>clearTimeout(t)},[stage]);
- useEffect(()=>{if(stage!=='breach')return;const t=setInterval(()=>setBreachStep(s=>{if(s>=4){clearInterval(t);setStage('takeover');persist(teamRef.current,'takeover');return s}return s+1}),500);return()=>clearInterval(t)},[stage,persist]);
- useEffect(()=>{if(stage==='breach'&&breachStep===2)publishTakeoverEvent('critical_alert')},[breachStep,stage]);
- useEffect(()=>{if(stage!=='takeover')return;persist(teamRef.current,'takeover');const t=setTimeout(()=>{publishTakeoverEvent('message_typing');setStage('transmission');persist(teamRef.current,'transmission')},950);return()=>clearTimeout(t)},[stage,persist]);
- useEffect(()=>{if(stage!=='phase1')return;setQuestionReady(false);setQuestionStartedAt(null);const t=setTimeout(()=>{if(!phase1FinalizedRef.current&&!pausedRef.current&&overallSecondsRef.current>0)setQuestionReady(true)},1350);return()=>clearTimeout(t)},[questionIndex,stage]);
- useEffect(()=>{if(stage!=='phase1'||!phase1StartedAt||paused)return;const tick=()=>{if(phase1FinalizedRef.current)return;const elapsed=Math.max(0,Math.floor((Date.now()-phase1StartedAt)/1000));const remaining=Math.max(0,config.durationSeconds-elapsed);setOverallSeconds(remaining);overallSecondsRef.current=remaining;if(remaining<=0){finalizePhaseOne();return}if(questionReady&&questionStartedAt){const questionElapsed=Math.max(0,Math.floor((Date.now()-questionStartedAt)/1000));const qRemaining=Math.max(0,config.questionDurationSeconds-questionElapsed);setQuestionSeconds(qRemaining);if(qRemaining<=0)setQuestionReady(false)}};tick();const t=setInterval(tick,250);return()=>clearInterval(t)},[config.durationSeconds,config.questionDurationSeconds,finalizePhaseOne,paused,phase1StartedAt,questionReady,questionStartedAt,stage]);
- useEffect(()=>{if(stage!=='phase1'||!questionReady||paused||phase1FinalizedRef.current||overallSecondsRef.current<=0)return;const startedAt=Date.now();questionStartedAtRef.current=startedAt;setQuestionStartedAt(startedAt);setQuestionSeconds(config.questionDurationSeconds)},[config.questionDurationSeconds,paused,questionIndex,questionReady,stage]);
- const authenticate=useCallback(async(code:string,key:string)=>{setAuthError('');setStage('authenticating');try{const r=await authenticateTeam(code,key);if(!r){setAuthError('Credentials rejected. Check the team code and access key.');setStage('access');return}phase1FinalizedRef.current=false;const [qs,cfg]=await Promise.all([getPublicRoundQuestions(1),getRoundConfig(1)]);const ordered=shuffle(qs.length?qs:publicQuestions,r.teamCode).slice(0,cfg.questionCount||30);setTeam(r.teamCode);setQuestions(ordered);setAnswers(Object.fromEntries(Object.entries(r.answers??{}).map(([k,v])=>[Number(k),v])));setAdvanced(Boolean(r.advanced));setCorrect(Number(r.recovery??0));setIntegrity(Number(r.integrity??0));setConfig(cfg);setPhase1StartedAt(r.phase1StartedAt??null);setQuestionStartedAt(null);void updateTeam(r.teamCode,{connectedAt:Date.now(),lastSeenAt:Date.now()}).catch(error=>console.warn('[breaking-bug] Team connection timestamp failed.',error));persist(r.teamCode,'standby');setTimeout(()=>setStage('standby'),600)}catch(error){const message=error instanceof Error?error.message:String(error);console.error('[breaking-bug] Team authentication failed.',error);setAuthError(message);setStage('access')}},[persist]);
- const answer=useCallback((value:string)=>{const q=questions[questionIndex];const now=Date.now();const phaseDeadline=phase1StartedAtRef.current===null?Infinity:phase1StartedAtRef.current+config.durationSeconds*1000;const questionDeadline=questionStartedAtRef.current===null?Infinity:questionStartedAtRef.current+config.questionDurationSeconds*1000;if(!q||phase1FinalizedRef.current||pausedRef.current||!questionReady)return;if(now>=phaseDeadline){finalizePhaseOne();return}if(now>=questionDeadline){setQuestionReady(false);return}if(answersRef.current[q.id])return;setAnswers(a=>({...a,[q.id]:value}));void saveTeamAnswer(teamRef.current,q.id,value).catch(error=>console.error('[breaking-bug] Answer save failed.',error))},[config.durationSeconds,config.questionDurationSeconds,finalizePhaseOne,questionIndex,questionReady,questions]);
- const nextQuestion=useCallback(()=>{const phaseDeadline=phase1StartedAtRef.current===null?Infinity:phase1StartedAtRef.current+config.durationSeconds*1000;if(phase1FinalizedRef.current||Date.now()>=phaseDeadline||overallSecondsRef.current<=0){finalizePhaseOne();return}if(questionIndex>=questions.length-1){finalizePhaseOne();return}setQuestionIndex(i=>i+1);setQuestionSeconds(config.questionDurationSeconds);setQuestionStartedAt(null);questionStartedAtRef.current=null;setQuestionReady(false);persist(teamRef.current,'phase1')},[config.durationSeconds,config.questionDurationSeconds,finalizePhaseOne,persist,questionIndex,questions.length]);
- const completeTransmission=useCallback(()=>{publishTakeoverEvent('message_complete');setStage('standby');persist(teamRef.current,'standby')},[persist]);
- const startMission=useCallback(()=>{if(advanced){setStage('mission');persist(teamRef.current,'mission')}},[advanced,persist]);
- const enterChambers=useCallback(()=>setStage('chambers'),[]),finish=useCallback(()=>setStage('restored'),[]);
- return {stage,team,questions,questionIndex,answers,overallSeconds,questionSeconds,breachStep,questionReady,correct,answered:Object.keys(answers).length,advanced,authError,authenticate,answer,nextQuestion,completeTransmission,startMission,enterChambers,finish,reset,integrity,config,demoMode:false,setDemoMode:()=>undefined};
+export function useCompetition() {
+  const [stage, setStage] = useState<ParticipantStage>('access');
+  const [team, setTeam] = useState('');
+  const [questions, setQuestions] = useState<PublicDebugQuestion[]>([]);
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [overallSeconds, setOverallSeconds] = useState(840);
+  const [questionSeconds, setQuestionSeconds] = useState(35);
+  const [breachStep, setBreachStep] = useState(0);
+  const [questionReady, setQuestionReady] = useState(false);
+  const [authError, setAuthError] = useState('');
+  const [advanced, setAdvanced] = useState(false);
+  const [correct, setCorrect] = useState(0);
+  const [integrity, setIntegrity] = useState(0);
+  const [phase1StartedAt, setPhase1StartedAt] = useState<number | null>(null);
+  const [questionStartedAt, setQuestionStartedAt] = useState<number | null>(null);
+  const [paused, setPaused] = useState(false);
+  const [config, setConfig] = useState({ durationSeconds: 840, questionDurationSeconds: 35, questionCount: 30, advanceCount: 25 });
+
+  const stageRef = useRef(stage);
+  const teamRef = useRef(team);
+  const phase1FinalizedRef = useRef(false);
+  const answersRef = useRef(answers);
+  const overallSecondsRef = useRef(overallSeconds);
+  const phase1StartedAtRef = useRef<number | null>(phase1StartedAt);
+  const questionStartedAtRef = useRef<number | null>(questionStartedAt);
+  const pausedRef = useRef(paused);
+  stageRef.current = stage;
+  teamRef.current = team;
+  answersRef.current = answers;
+  overallSecondsRef.current = overallSeconds;
+  phase1StartedAtRef.current = phase1StartedAt;
+  questionStartedAtRef.current = questionStartedAt;
+  pausedRef.current = paused;
+
+  const persist = useCallback((t: string, s: ParticipantStage) => {
+    if (typeof window !== 'undefined' && t) sessionStorage.setItem(sessionKey(t), JSON.stringify({ teamCode: t, stage: s }));
+  }, []);
+
+  const reset = useCallback(() => {
+    phase1FinalizedRef.current = false;
+    if (teamRef.current) sessionStorage.removeItem(sessionKey(teamRef.current));
+    setStage('access'); setTeam(''); setQuestions([]); setQuestionIndex(0); setAnswers({});
+    setOverallSeconds(840); setQuestionSeconds(35); setBreachStep(0); setQuestionReady(false);
+    setAuthError(''); setAdvanced(false); setCorrect(0); setIntegrity(0); setPhase1StartedAt(null);
+    setQuestionStartedAt(null); setPaused(false);
+  }, []);
+
+  const finalizePhaseOne = useCallback(() => {
+    if (phase1FinalizedRef.current || !teamRef.current) return;
+    phase1FinalizedRef.current = true;
+    setQuestionReady(false); setQuestionStartedAt(null);
+    const currentTeam = teamRef.current;
+    setOverallSeconds(0); overallSecondsRef.current = 0; setQuestionSeconds(0); setStage('results');
+    persist(currentTeam, 'results');
+    void submitTeamPhaseOne(currentTeam).catch(error => console.error('[breaking-bug] Phase 1 finalization failed.', error));
+  }, [persist]);
+
+  const beginTakeover = useCallback(() => {
+    publishTakeoverEvent('breach_start');
+    publishTakeoverEvent('system_glitch');
+    setStage('anomaly');
+    setBreachStep(0);
+  }, []);
+
+  useEffect(() => realtime.connect(m => {
+    if (m.type === 'breach' && teamRef.current && (stageRef.current === 'standby' || stageRef.current === 'access')) beginTakeover();
+    if (m.type === 'reset') reset();
+    // Never let an unauthenticated/stale browser jump directly into Phase 1.
+    // The current Firebase control state can legitimately be phase1-start when a participant first opens the portal.
+    if (m.type === 'phase1-start' && m.phase1StartedAt && teamRef.current) {
+      phase1FinalizedRef.current = false;
+      setPhase1StartedAt(m.phase1StartedAt); setQuestionStartedAt(null); setPaused(false); setStage('phase1'); persist(teamRef.current, 'phase1');
+    }
+    if (m.type === 'phase1-pause' && teamRef.current) {
+      setPaused(true);
+      if (stageRef.current !== 'results') setStage('phase1');
+    }
+    if (m.type === 'phase1-resume' && m.phase1StartedAt && teamRef.current) {
+      setPhase1StartedAt(m.phase1StartedAt); setQuestionStartedAt(null); setPaused(false); setStage('phase1');
+    }
+    if (m.type === 'results' && teamRef.current) {
+      setStage('results'); setQuestionReady(false); setQuestionStartedAt(null);
+    }
+  }), [beginTakeover, persist, reset]);
+
+  useEffect(() => {
+    if (!team) return;
+    return watchTeam(team, r => {
+      if (!r) return;
+      setAdvanced(Boolean(r.advanced)); setCorrect(Number(r.recovery ?? 0)); setIntegrity(Number(r.integrity ?? 0));
+      if (r.answers) setAnswers(Object.fromEntries(Object.entries(r.answers).map(([k, v]) => [Number(k), v])));
+      if (r.phase1StartedAt) setPhase1StartedAt(r.phase1StartedAt);
+      if (r.status === 'submitted') {
+        phase1FinalizedRef.current = true; setQuestionReady(false); setQuestionStartedAt(null); setOverallSeconds(0); setQuestionSeconds(0); setStage('results');
+      }
+    });
+  }, [team]);
+
+  useEffect(() => {
+    if (!team) return;
+    const heartbeat = window.setInterval(() => {
+      void updateTeam(teamRef.current, { lastSeenAt: Date.now() }).catch(error => console.warn('[breaking-bug] Heartbeat update failed.', error));
+    }, 15000);
+    return () => window.clearInterval(heartbeat);
+  }, [team]);
+
+  useEffect(() => {
+    let dead = false;
+    (async () => {
+      if (typeof window === 'undefined') return;
+      const key = Object.keys(sessionStorage).find(k => k.startsWith('breaking-bug:team:'));
+      if (!key) return;
+      const saved = JSON.parse(sessionStorage.getItem(key) || '{}') as { teamCode?: string; stage?: ParticipantStage };
+      if (!saved.teamCode) return;
+      try {
+        const [r, c, qs, cfg] = await Promise.all([getTeam(saved.teamCode), getCompetitionControl(), getPublicRoundQuestions(1), getRoundConfig(1)]);
+        if (dead || !r) return;
+        setTeam(r.teamCode);
+        setQuestions(shuffle(qs.length ? qs : publicQuestions, r.teamCode).slice(0, cfg.questionCount || 30));
+        setAnswers(Object.fromEntries(Object.entries(r.answers ?? {}).map(([k, v]) => [Number(k), v])));
+        setAdvanced(Boolean(r.advanced)); setCorrect(Number(r.recovery ?? 0)); setIntegrity(Number(r.integrity ?? 0)); setConfig(cfg);
+        setPhase1StartedAt(r.phase1StartedAt ?? c?.phase1StartedAt ?? null);
+        const activePhase = c?.command === 'phase1-start' || c?.command === 'phase1-pause' || c?.command === 'phase1-resume' || Boolean(r.phase1StartedAt);
+        setPaused(c?.command === 'phase1-pause');
+        if (r.status === 'submitted') phase1FinalizedRef.current = true;
+        const recoveryStage = saved.stage && ['anomaly', 'breach', 'takeover', 'transmission', 'mission', 'chambers', 'restored'].includes(saved.stage) ? saved.stage : undefined;
+        setStage(r.status === 'submitted' ? 'results' : recoveryStage ?? (activePhase ? 'phase1' : 'standby'));
+      } catch (error) {
+        console.error('[breaking-bug] Session recovery failed.', error);
+      }
+    })();
+    return () => { dead = true; };
+  }, []);
+
+  useEffect(() => {
+    if (stage !== 'anomaly') return;
+    const t = setTimeout(() => setStage('breach'), 1250);
+    return () => clearTimeout(t);
+  }, [stage]);
+
+  useEffect(() => {
+    if (stage !== 'breach') return;
+    const t = setInterval(() => setBreachStep(s => {
+      if (s >= 4) { clearInterval(t); setStage('takeover'); persist(teamRef.current, 'takeover'); return s; }
+      return s + 1;
+    }), 500);
+    return () => clearInterval(t);
+  }, [stage, persist]);
+
+  useEffect(() => { if (stage === 'breach' && breachStep === 2) publishTakeoverEvent('critical_alert'); }, [breachStep, stage]);
+
+  useEffect(() => {
+    if (stage !== 'takeover') return;
+    persist(teamRef.current, 'takeover');
+    const t = setTimeout(() => { publishTakeoverEvent('message_typing'); setStage('transmission'); persist(teamRef.current, 'transmission'); }, 950);
+    return () => clearTimeout(t);
+  }, [stage, persist]);
+
+  useEffect(() => {
+    if (stage !== 'phase1') return;
+    setQuestionReady(false); setQuestionStartedAt(null);
+    const t = setTimeout(() => {
+      if (!phase1FinalizedRef.current && !pausedRef.current && overallSecondsRef.current > 0 && questions.length > 0) setQuestionReady(true);
+    }, 1350);
+    return () => clearTimeout(t);
+  }, [questionIndex, stage, questions.length]);
+
+  useEffect(() => {
+    if (stage !== 'phase1' || !phase1StartedAt || paused) return;
+    const tick = () => {
+      if (phase1FinalizedRef.current) return;
+      const elapsed = Math.max(0, Math.floor((Date.now() - phase1StartedAt) / 1000));
+      const remaining = Math.max(0, config.durationSeconds - elapsed);
+      setOverallSeconds(remaining); overallSecondsRef.current = remaining;
+      if (remaining <= 0) { finalizePhaseOne(); return; }
+      if (questionReady && questionStartedAt) {
+        const questionElapsed = Math.max(0, Math.floor((Date.now() - questionStartedAt) / 1000));
+        const qRemaining = Math.max(0, config.questionDurationSeconds - questionElapsed);
+        setQuestionSeconds(qRemaining);
+        if (qRemaining <= 0) setQuestionReady(false);
+      }
+    };
+    tick();
+    const t = setInterval(tick, 250);
+    return () => clearInterval(t);
+  }, [config.durationSeconds, config.questionDurationSeconds, finalizePhaseOne, paused, phase1StartedAt, questionReady, questionStartedAt, stage]);
+
+  useEffect(() => {
+    if (stage !== 'phase1' || !questionReady || paused || phase1FinalizedRef.current || overallSecondsRef.current <= 0) return;
+    const startedAt = Date.now();
+    questionStartedAtRef.current = startedAt; setQuestionStartedAt(startedAt); setQuestionSeconds(config.questionDurationSeconds);
+  }, [config.questionDurationSeconds, paused, questionIndex, questionReady, stage]);
+
+  const authenticate = useCallback(async (code: string, key: string) => {
+    setAuthError(''); setStage('authenticating');
+    try {
+      const r = await authenticateTeam(code, key);
+      if (!r) { setAuthError('Credentials rejected. Check the team code and access key.'); setStage('access'); return; }
+      phase1FinalizedRef.current = false;
+      const [qs, cfg, control] = await Promise.all([getPublicRoundQuestions(1), getRoundConfig(1), getCompetitionControl()]);
+      const ordered = shuffle(qs.length ? qs : publicQuestions, r.teamCode).slice(0, cfg.questionCount || 30);
+      setTeam(r.teamCode); setQuestions(ordered); setAnswers(Object.fromEntries(Object.entries(r.answers ?? {}).map(([k, v]) => [Number(k), v])));
+      setAdvanced(Boolean(r.advanced)); setCorrect(Number(r.recovery ?? 0)); setIntegrity(Number(r.integrity ?? 0)); setConfig(cfg);
+      const activePhase = control?.command === 'phase1-start' || control?.command === 'phase1-pause' || control?.command === 'phase1-resume' || Boolean(r.phase1StartedAt);
+      const activeStartedAt = r.phase1StartedAt ?? control?.phase1StartedAt ?? null;
+      setPhase1StartedAt(activeStartedAt); setQuestionStartedAt(null); setPaused(control?.command === 'phase1-pause');
+      void updateTeam(r.teamCode, { connectedAt: Date.now(), lastSeenAt: Date.now() }).catch(error => console.warn('[breaking-bug] Team connection timestamp failed.', error));
+      const nextStage: ParticipantStage = activePhase && activeStartedAt ? 'phase1' : 'standby';
+      persist(r.teamCode, nextStage);
+      setStage(nextStage);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('[breaking-bug] Team authentication failed.', error); setAuthError(message); setStage('access');
+    }
+  }, [persist]);
+
+  const answer = useCallback((value: string) => {
+    const q = questions[questionIndex];
+    const now = Date.now();
+    const phaseDeadline = phase1StartedAtRef.current === null ? Infinity : phase1StartedAtRef.current + config.durationSeconds * 1000;
+    const questionDeadline = questionStartedAtRef.current === null ? Infinity : questionStartedAtRef.current + config.questionDurationSeconds * 1000;
+    if (!q || phase1FinalizedRef.current || pausedRef.current || !questionReady) return;
+    if (now >= phaseDeadline) { finalizePhaseOne(); return; }
+    if (now >= questionDeadline) { setQuestionReady(false); return; }
+    if (answersRef.current[q.id]) return;
+    setAnswers(a => ({ ...a, [q.id]: value }));
+    void saveTeamAnswer(teamRef.current, q.id, value).catch(error => console.error('[breaking-bug] Answer save failed.', error));
+  }, [config.durationSeconds, config.questionDurationSeconds, finalizePhaseOne, questionIndex, questionReady, questions]);
+
+  const nextQuestion = useCallback(() => {
+    const phaseDeadline = phase1StartedAtRef.current === null ? Infinity : phase1StartedAtRef.current + config.durationSeconds * 1000;
+    if (phase1FinalizedRef.current || Date.now() >= phaseDeadline || overallSecondsRef.current <= 0) { finalizePhaseOne(); return; }
+    if (questionIndex >= questions.length - 1) { finalizePhaseOne(); return; }
+    setQuestionIndex(i => i + 1); setQuestionSeconds(config.questionDurationSeconds); setQuestionStartedAt(null); questionStartedAtRef.current = null; setQuestionReady(false); persist(teamRef.current, 'phase1');
+  }, [config.durationSeconds, config.questionDurationSeconds, finalizePhaseOne, persist, questionIndex, questions.length]);
+
+  const completeTransmission = useCallback(() => { publishTakeoverEvent('message_complete'); setStage('standby'); persist(teamRef.current, 'standby'); }, [persist]);
+  const startMission = useCallback(() => { if (advanced) { setStage('mission'); persist(teamRef.current, 'mission'); } }, [advanced, persist]);
+  const enterChambers = useCallback(() => setStage('chambers'), []);
+  const finish = useCallback(() => setStage('restored'), []);
+
+  return {
+    stage, team, questions, questionIndex, answers, overallSeconds, questionSeconds, breachStep, questionReady,
+    correct, answered: Object.keys(answers).length, advanced, authError, authenticate, answer, nextQuestion,
+    completeTransmission, startMission, enterChambers, finish, reset, integrity, config, demoMode: false, setDemoMode: () => undefined,
+  };
 }
