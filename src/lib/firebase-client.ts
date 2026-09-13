@@ -10,10 +10,11 @@ import {
 } from 'firebase/auth';
 import { getDatabase, type Database } from 'firebase/database';
 
-// This is the public Firebase Web App config shown by Firebase Console for
-// breakingbug-prod. Firebase web config values are identifiers, not secrets.
-const FIREBASE_CONFIG = {
-  apiKey: 'AIzaSyDZjaSBDWFHod4CCacXK5BjtxWoP5JuaoI',
+// The Firebase Web API key is supplied through the deployment environment.
+// Firebase Web App configuration is client-side by design; keep the key
+// restricted in Google Cloud/Firebase rather than committing it to Git.
+const config = {
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY as string | undefined,
   authDomain: 'breakingbug-prod.firebaseapp.com',
   databaseURL: 'https://breakingbug-prod-default-rtdb.asia-southeast1.firebasedatabase.app',
   projectId: 'breakingbug-prod',
@@ -25,19 +26,6 @@ const FIREBASE_CONFIG = {
 
 const ORGANIZER_EMAIL = 'saicharan.ak477@gmail.com';
 const ORGANIZER_USERNAME = 'sai';
-
-const useEnvironmentConfig = import.meta.env.VITE_FIREBASE_USE_ENV === 'true';
-const config = useEnvironmentConfig
-  ? {
-      apiKey: import.meta.env.VITE_FIREBASE_API_KEY as string | undefined,
-      authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN as string | undefined,
-      databaseURL: import.meta.env.VITE_FIREBASE_DATABASE_URL as string | undefined,
-      projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID as string | undefined,
-      storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET as string | undefined,
-      messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID as string | undefined,
-      appId: import.meta.env.VITE_FIREBASE_APP_ID as string | undefined,
-    }
-  : FIREBASE_CONFIG;
 
 export const firebaseConfigured = Object.values(config).every(Boolean);
 let database: Database | null = null;
