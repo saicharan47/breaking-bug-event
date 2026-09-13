@@ -9,7 +9,12 @@ const endpoint = `https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=
 
 const response = await fetch(endpoint, {
   method: 'POST',
-  headers: { 'content-type': 'application/json' },
+  headers: {
+    'content-type': 'application/json',
+    // The Firebase browser key is restricted by HTTP referrer. Mimic a local web app
+    // request so the CI smoke test exercises the same browser-key restriction.
+    referer: 'http://localhost:5173/',
+  },
   body: JSON.stringify({ returnSecureToken: true }),
 });
 
