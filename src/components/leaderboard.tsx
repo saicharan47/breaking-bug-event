@@ -2,6 +2,7 @@ import type { TeamRecord } from '@/lib/firebase';
 
 type LeaderboardProps = {
   teams: TeamRecord[];
+  advanceCount?: number;
   resultsReady?: boolean;
 };
 
@@ -15,20 +16,21 @@ function ranked(teams: TeamRecord[]) {
     );
 }
 
-export function Leaderboard({ teams, resultsReady = false }: LeaderboardProps) {
+export function Leaderboard({ teams, advanceCount = 25, resultsReady = false }: LeaderboardProps) {
   const ranking = ranked(teams);
+  const killLineIndex = Math.max(1, Math.floor(advanceCount));
 
   return (
     <div className="mt-5 space-y-1 font-mono text-[10px]">
       {ranking.map((team, index) => {
-        const isKillLine = index === 25;
-        const purged = resultsReady && index >= 25;
+        const isKillLine = index === killLineIndex;
+        const purged = resultsReady && index >= killLineIndex;
 
         return (
           <div key={team.teamCode}>
             {isKillLine && (
               <div className="my-2 border-y border-[#a34b48] py-2 text-center text-[#c66b65]">
-                — KILL LINE —
+                — KILL LINE / TOP {killLineIndex} —
               </div>
             )}
             <div
