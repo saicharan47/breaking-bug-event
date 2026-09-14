@@ -2,7 +2,7 @@ import { type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { AdminAuthGate } from '@/components/admin-auth';
-import { AdminPage } from '@/pages/admin';
+import { AdminPage } from '@/pages/admin-clean';
 import { ParticipantPage } from '@/pages/participant';
 import NotFound from '@/pages/not-found';
 import { Route, Switch, useLocation, Router as WouterRouter } from 'wouter';
