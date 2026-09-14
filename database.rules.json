@@ -5,10 +5,21 @@
     "teams": {
       "$teamCode": {
         ".read": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
+        "name": {
+          ".read": "auth != null && data.parent().child('authUid').val() === auth.uid"
+        },
         "authUid": {
           ".read": "auth != null && data.val() === auth.uid",
           ".write": "auth != null && auth.provider === 'anonymous' && !data.exists() && newData.isString() && newData.val() === auth.uid && root.child('teamClaims').child($teamCode).child('uid').val() === auth.uid",
           ".validate": "newData.isString()"
+        },
+        "gmail": {
+          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
+          ".validate": "newData.isString() && newData.val().matches(/^[^\\s@]+@gmail\\.com$/)"
+        },
+        "password": {
+          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
+          ".validate": "newData.isString() && newData.val().length >= 6"
         },
         "accessKey": {
           ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
@@ -32,70 +43,35 @@
         "answers": {
           ".read": "auth != null && data.parent().child('authUid').val() === auth.uid",
           "$questionId": {
-            ".write": "auth != null && auth.provider === 'anonymous' && data.parent().parent().child('authUid').val() === auth.uid && !data.exists() && (root.child('competition').child('control').child('command').val() === 'phase1-start' || root.child('competition').child('control').child('command').val() === 'phase1-resume') && root.child('competition').child('control').child('phase1StartedAt').isNumber() && root.child('competition').child('control').child('phase1DurationSeconds').isNumber() && now < root.child('competition').child('control').child('phase1StartedAt').val() + root.child('competition').child('control').child('phase1DurationSeconds').val() * 1000 && newData.isString() && newData.val().matches(/^[A-D]$/)",
+            ".write": "auth != null && auth.provider === 'anonymous' && data.parent().parent().child('authUid').val() === auth.uid && !data.exists() && (root.child('competition').child('control').child('command').val() === 'phase1-start' || root.child('competition').child('control').child('command').val() === 'phase1-resume') && root.child('competition').child('control').child('phase1StartedAt').isNumber() && root.child('competition').child('control').child('phase1DurationSeconds').isNumber() && now < root.child('competition').child('competition').child('control').child('phase1StartedAt').val() + root.child('competition').child('control').child('phase1DurationSeconds').val() * 1000 && newData.isString() && newData.val().matches(/^[A-D]$/)",
             ".validate": "newData.isString() && newData.val().matches(/^[A-D]$/)"
           }
         },
-        "advanced": {
-          ".read": "auth != null && data.parent().child('authUid').val() === auth.uid",
-          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
-          ".validate": "newData.isBoolean()"
-        },
-        "recovery": {
-          ".read": "auth != null && data.parent().child('authUid').val() === auth.uid",
-          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
-          ".validate": "newData.isNumber()"
-        },
-        "corruption": {
-          ".read": "auth != null && data.parent().child('authUid').val() === auth.uid",
-          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
-          ".validate": "newData.isNumber()"
-        },
-        "integrity": {
-          ".read": "auth != null && data.parent().child('authUid').val() === auth.uid",
-          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
-          ".validate": "newData.isNumber()"
-        },
-        "netScore": {
-          ".read": "auth != null && data.parent().child('authUid').val() === auth.uid",
-          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
-          ".validate": "newData.isNumber()"
-        },
-        "totalTimeSeconds": {
-          ".read": "auth != null && data.parent().child('authUid').val() === auth.uid",
-          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
-          ".validate": "newData.isNumber()"
-        },
-        "submittedAt": {
-          ".read": "auth != null && data.parent().child('authUid').val() === auth.uid",
-          ".write": "auth != null && auth.provider === 'anonymous' && data.parent().child('authUid').val() === auth.uid && !data.exists() && newData.isNumber()",
-          ".validate": "newData.isNumber()"
-        },
-        "phase1StartedAt": {
-          ".read": "auth != null && data.parent().child('authUid').val() === auth.uid",
-          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
-          ".validate": "newData.isNumber()"
-        },
-        "questionOrder": {
-          ".read": "auth != null && data.parent().child('authUid').val() === auth.uid",
-          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
-          ".validate": "newData.hasChildren()"
-        },
-        "runId": {
-          ".read": "auth != null && data.parent().child('authUid').val() === auth.uid",
-          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
-          ".validate": "newData.isString()"
-        },
-        "$other": {
-          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'"
-        }
+        "advanced": { ".read": "auth != null && data.parent().child('authUid').val() === auth.uid", ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'", ".validate": "newData.isBoolean()" },
+        "recovery": { ".read": "auth != null && data.parent().child('authUid').val() === auth.uid", ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'", ".validate": "newData.isNumber()" },
+        "corruption": { ".read": "auth != null && data.parent().child('authUid').val() === auth.uid", ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'", ".validate": "newData.isNumber()" },
+        "integrity": { ".read": "auth != null && data.parent().child('authUid').val() === auth.uid", ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'", ".validate": "newData.isNumber()" },
+        "netScore": { ".read": "auth != null && data.parent().child('authUid').val() === auth.uid", ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'", ".validate": "newData.isNumber()" },
+        "totalTimeSeconds": { ".read": "auth != null && data.parent().child('authUid').val() === auth.uid", ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'", ".validate": "newData.isNumber()" },
+        "submittedAt": { ".read": "auth != null && data.parent().child('authUid').val() === auth.uid", ".write": "auth != null && auth.provider === 'anonymous' && data.parent().child('authUid').val() === auth.uid && !data.exists() && newData.isNumber()", ".validate": "newData.isNumber()" },
+        "phase1StartedAt": { ".read": "auth != null && data.parent().child('authUid').val() === auth.uid", ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'", ".validate": "newData.isNumber()" },
+        "questionOrder": { ".read": "auth != null && data.parent().child('authUid').val() === auth.uid", ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'", ".validate": "newData.hasChildren()" },
+        "runId": { ".read": "auth != null && data.parent().child('authUid').val() === auth.uid", ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'", ".validate": "newData.isString()" },
+        "$other": { ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'" }
+      }
+    },
+    "teamDirectory": {
+      "$teamName": {
+        ".read": "auth != null",
+        ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
+        ".validate": "newData.isString()"
       }
     },
     "teamClaims": {
       "$teamCode": {
         ".read": false,
-        ".write": "auth != null && ((auth.provider === 'anonymous' && !data.exists() && newData.hasChildren(['uid','accessKey']) && newData.child('uid').val() === auth.uid && newData.child('accessKey').val() === root.child('teams').child($teamCode).child('accessKey').val()) || (data.child('uid').val() === auth.uid && !newData.exists()))",
-        ".validate": "newData.hasChildren(['uid', 'accessKey']) && newData.child('uid').isString() && newData.child('accessKey').isString()"
+        ".write": "auth != null && ((auth.provider === 'anonymous' && !data.exists() && newData.hasChildren(['uid','teamName','gmail','password']) && newData.child('uid').val() === auth.uid && newData.child('teamName').val() === root.child('teams').child($teamCode).child('name').val() && newData.child('gmail').val() === root.child('teams').child($teamCode).child('gmail').val() && newData.child('password').val() === root.child('teams').child($teamCode).child('password').val()) || (data.child('uid').val() === auth.uid && !newData.exists()))",
+        ".validate": "newData.hasChildren(['uid','teamName','gmail','password']) && newData.child('uid').isString() && newData.child('teamName').isString() && newData.child('gmail').isString() && newData.child('password').isString()"
       }
     },
     "competition": {
@@ -108,18 +84,9 @@
       "$round": {
         ".read": false,
         ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
-        "publicQuestions": {
-          ".read": "auth != null",
-          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'"
-        },
-        "config": {
-          ".read": "auth != null",
-          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'"
-        },
-        "questions": {
-          ".read": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'",
-          ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'"
-        }
+        "publicQuestions": { ".read": "auth != null", ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'" },
+        "config": { ".read": "auth != null", ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'" },
+        "questions": { ".read": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'", ".write": "auth != null && auth.token.email === 'saicharan.ak477@gmail.com'" }
       }
     }
   }
