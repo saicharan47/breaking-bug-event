@@ -20,6 +20,7 @@ export type CompetitionControl = {
 };
 const teamPath = (teamCode: string) => `teams/${encodeURIComponent(teamCode.trim().toUpperCase())}`;
 const teamClaimPath = (teamCode: string) => `teamClaims/${encodeURIComponent(teamCode.trim().toUpperCase())}`;
+const teamDirectoryKey = (teamName: string) => teamName.trim().toUpperCase().replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'');
 export const DEFAULT_ROUND1_CONFIG: RoundConfig = { durationSeconds: 840, questionDurationSeconds: 35, questionCount: 30, advanceCount: 25 };
 const firebaseError = (action: string, error: unknown) => { const code = error && typeof error === 'object' && 'code' in error ? String((error as { code?: unknown }).code) : 'unknown'; return new Error(`${action} failed (${code}). Check Firebase availability and permissions.`); };
 
@@ -89,17 +90,17 @@ async function readParticipantTeam(teamCode:string):Promise<ParticipantTeamRecor
 export async function authenticateTeam(teamName:string,gmail:string,password:string):Promise<ParticipantTeamRecord|null>{
   const db=await getFirebaseDatabase(); if(!db)return null;
   const normalizedName=teamName.trim().toUpperCase(),normalizedGmail=gmail.trim().toLowerCase(),normalizedPassword=password.trim(),user=getFirebaseAuth().currentUser;
-  if(!user?.isAnonymous)return null;
+  if(!user?.isAnonymous || !normalizedName || !normalizedGmail || !normalizedPassword)return null;
   try {
-    const { seedTeams } = await import('@/data/competition');
-    const team=seedTeams.find(t=>t.name.trim().toUpperCase()===normalizedName);
-    if(!team)return null;
-    const claim=ref(db,teamClaimPath(team.teamCode));
+    const directory=await get(ref(db,`teamDirectory/${teamDirectoryKey(normalizedName)}`));
+    const teamCode=directory.val() as string|null;
+    if(!teamCode)return null;
+    const claim=ref(db,teamClaimPath(teamCode));
     await set(claim,{uid:user.uid,teamName:normalizedName,gmail:normalizedGmail,password:normalizedPassword});
-    const ownership=await runTransaction(ref(db,`${teamPath(team.teamCode)}/authUid`),current=>current ?? user.uid);
+    const ownership=await runTransaction(ref(db,`${teamPath(teamCode)}/authUid`),current=>current ?? user.uid);
     if(!ownership.committed || ownership.snapshot.val()!==user.uid){await set(claim,null);return null;}
     await set(claim,null);
-    return await readParticipantTeam(team.teamCode);
+    return await readParticipantTeam(teamCode);
   } catch(error){ console.warn('[breaking-bug] Team authentication failed.',error); return null; }
 }
 export async function getTeam(teamCode:string):Promise<ParticipantTeamRecord|null>{ return readParticipantTeam(teamCode); }
@@ -113,7 +114,7 @@ export async function provisionTeamRegistration(teamCode:string,teamName:string,
   const { seedTeams }=await import('@/data/competition');
   if(!seedTeams.some(t=>t.teamCode===normalizedCode))throw new Error(`Unknown team code: ${normalizedCode}`);
   try{
-    await update(ref(db),{[`teams/${encodeURIComponent(normalizedCode)}/name`]:normalizedName,[`teams/${encodeURIComponent(normalizedCode)}/gmail`]:normalizedGmail,[`teams/${encodeURIComponent(normalizedCode)}/password`]:normalizedPassword,[`teamDirectory/${normalizedName.replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'')}`]:normalizedCode});
+    await update(ref(db),{[`teams/${encodeURIComponent(normalizedCode)}/name`]:normalizedName,[`teams/${encodeURIComponent(normalizedCode)}/gmail`]:normalizedGmail,[`teams/${encodeURIComponent(normalizedCode)}/password`]:normalizedPassword,[`teamDirectory/${teamDirectoryKey(normalizedName)}`]:normalizedCode});
   }catch(error){throw firebaseError('Provisioning team registration',error);}
 }
 export function watchTeam(teamCode:string,onTeam:(team:ParticipantTeamRecord|null)=>void):Unsubscribe{
