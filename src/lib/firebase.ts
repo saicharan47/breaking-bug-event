@@ -5,13 +5,15 @@ import { publicQuestions, type PublicDebugQuestion } from '@/data/public-questio
 
 export type RoundConfig = { durationSeconds: number; questionDurationSeconds: number; questionCount: number; advanceCount: number };
 export type TeamRecord = SeedTeam & {
-  accessKey: string;
+  accessKey?: string;
+  gmail?: string;
+  password?: string;
   authUid?: string;
   status: 'connected' | 'in-progress' | 'submitted'; connectedAt?: number; lastSeenAt?: number; runId?: string;
   questionOrder?: number[]; answers?: Record<string, string>; recovery?: number; corruption?: number; integrity?: number;
   netScore?: number; totalTimeSeconds?: number; submittedAt?: number; advanced?: boolean; phase1StartedAt?: number;
 };
-export type ParticipantTeamRecord = Omit<TeamRecord, 'accessKey'>;
+export type ParticipantTeamRecord = Omit<TeamRecord, 'accessKey' | 'password'>;
 export type CompetitionControl = {
   command: 'standby' | 'breach' | 'phase1-start' | 'phase1-pause' | 'phase1-resume' | 'phase1-restart' | 'results' | 'reset';
   issuedAt?: number; runId?: string; phase1StartedAt?: number; phase1DurationSeconds?: number; pausedAt?: number;
@@ -30,7 +32,7 @@ export async function ensureTeamsSeeded() {
     const snapshot=await get(ref(db,'teams'));
     const existing=snapshot.val() as Record<string,TeamRecord>|null;
     const missing=seedTeams.filter(t=>!existing?.[t.teamCode]);
-    if(missing.length){console.warn('[breaking-bug] Missing team records in Firebase; credentials must be provisioned in Firebase before the event.',missing.map(t=>t.teamCode));return false;}
+    if(missing.length){console.warn('[breaking-bug] Missing team records in Firebase; registrations must be provisioned in the organizer console.',missing.map(t=>t.teamCode));return false;}
     await ensureRound1Seeded();
     return true;
   } catch(e){ console.warn('[breaking-bug] Firebase team validation failed.',e); return false; }
@@ -70,7 +72,7 @@ export async function saveRoundConfig(round:number, config:RoundConfig){
   try { await set(ref(db,`rounds/${round}/config`),config); } catch(error){ throw firebaseError('Saving Round configuration',error); }
 }
 
-const participantTeamFields = ['authUid','status','connectedAt','lastSeenAt','questionOrder','answers','recovery','corruption','integrity','netScore','totalTimeSeconds','submittedAt','advanced','phase1StartedAt'] as const;
+const participantTeamFields = ['authUid','status','connectedAt','lastSeenAt','questionOrder','answers','recovery','corruption','integrity','netScore','totalTimeSeconds','submittedAt','advanced','phase1StartedAt','name'] as const;
 async function readParticipantTeam(teamCode:string):Promise<ParticipantTeamRecord|null>{
   const db=await getFirebaseDatabase(); if(!db)return null;
   const normalized=teamCode.trim().toUpperCase();
@@ -84,21 +86,36 @@ async function readParticipantTeam(teamCode:string):Promise<ParticipantTeamRecor
   } catch { return null; }
 }
 
-export async function authenticateTeam(teamCode:string,accessKey:string):Promise<ParticipantTeamRecord|null>{
+export async function authenticateTeam(teamName:string,gmail:string,password:string):Promise<ParticipantTeamRecord|null>{
   const db=await getFirebaseDatabase(); if(!db)return null;
-  const normalizedCode=teamCode.trim().toUpperCase(),normalizedKey=accessKey.trim().toUpperCase(),user=getFirebaseAuth().currentUser;
+  const normalizedName=teamName.trim().toUpperCase(),normalizedGmail=gmail.trim().toLowerCase(),normalizedPassword=password.trim(),user=getFirebaseAuth().currentUser;
   if(!user?.isAnonymous)return null;
   try {
-    const claim=ref(db,teamClaimPath(normalizedCode));
-    await set(claim,{uid:user.uid,accessKey:normalizedKey});
-    const ownership=await runTransaction(ref(db,`${teamPath(normalizedCode)}/authUid`),current=>current ?? user.uid);
+    const { seedTeams } = await import('@/data/competition');
+    const team=seedTeams.find(t=>t.name.trim().toUpperCase()===normalizedName);
+    if(!team)return null;
+    const claim=ref(db,teamClaimPath(team.teamCode));
+    await set(claim,{uid:user.uid,teamName:normalizedName,gmail:normalizedGmail,password:normalizedPassword});
+    const ownership=await runTransaction(ref(db,`${teamPath(team.teamCode)}/authUid`),current=>current ?? user.uid);
     if(!ownership.committed || ownership.snapshot.val()!==user.uid){await set(claim,null);return null;}
     await set(claim,null);
-    return await readParticipantTeam(normalizedCode);
+    return await readParticipantTeam(team.teamCode);
   } catch(error){ console.warn('[breaking-bug] Team authentication failed.',error); return null; }
 }
 export async function getTeam(teamCode:string):Promise<ParticipantTeamRecord|null>{ return readParticipantTeam(teamCode); }
 export async function updateTeam(teamCode:string,patch:Partial<TeamRecord>){const db=await getFirebaseDatabase();if(!db)throw new Error('Firebase database is unavailable.');try{await update(ref(db,teamPath(teamCode)),patch);}catch(error){throw firebaseError(`Updating team ${teamCode}`,error);}}
+export async function provisionTeamRegistration(teamCode:string,teamName:string,gmail:string,password:string){
+  const db=await getFirebaseDatabase(); if(!db)throw new Error('Firebase database is unavailable.');
+  const normalizedCode=teamCode.trim().toUpperCase(),normalizedName=teamName.trim().toUpperCase(),normalizedGmail=gmail.trim().toLowerCase(),normalizedPassword=password.trim();
+  if(!normalizedCode||!normalizedName)throw new Error('Team code and team name are required.');
+  if(!/^[^\s@]+@gmail\.com$/i.test(normalizedGmail))throw new Error('Participant email must be a valid Gmail address.');
+  if(normalizedPassword.length<6)throw new Error('Common password must be at least 6 characters.');
+  const { seedTeams }=await import('@/data/competition');
+  if(!seedTeams.some(t=>t.teamCode===normalizedCode))throw new Error(`Unknown team code: ${normalizedCode}`);
+  try{
+    await update(ref(db),{[`teams/${encodeURIComponent(normalizedCode)}/name`]:normalizedName,[`teams/${encodeURIComponent(normalizedCode)}/gmail`]:normalizedGmail,[`teams/${encodeURIComponent(normalizedCode)}/password`]:normalizedPassword,[`teamDirectory/${normalizedName.replace(/[^A-Z0-9]+/g,'-').replace(/^-|-$/g,'')}`]:normalizedCode});
+  }catch(error){throw firebaseError('Provisioning team registration',error);}
+}
 export function watchTeam(teamCode:string,onTeam:(team:ParticipantTeamRecord|null)=>void):Unsubscribe{
   let stop:Unsubscribe=()=>undefined;
   void getFirebaseDatabase().then(db=>{if(!db)return;const normalized=teamCode.trim().toUpperCase();const listeners=participantTeamFields.map(field=>onValue(ref(db,`${teamPath(normalized)}/${field}`),()=>{void readParticipantTeam(normalized).then(onTeam);},error=>console.warn(`[breaking-bug] Team ${field} listener failed.`,error)));stop=()=>listeners.forEach(unsubscribe=>unsubscribe());void readParticipantTeam(normalized).then(onTeam);});
@@ -114,4 +131,4 @@ export async function restartSharedPhaseOne(){await startSharedPhaseOne();}
 export async function saveTeamAnswer(teamCode:string,questionId:number,answer:string){const db=await getFirebaseDatabase();if(!db)throw new Error('Firebase database is unavailable.');try{await update(ref(db,teamPath(teamCode)),{[`answers/${questionId}`]:answer});}catch(error){throw firebaseError(`Saving answer for ${teamCode}`,error);}}
 export async function submitTeamPhaseOne(teamCode:string,_summary?:{recovery:number;corruption:number;integrity:number;netScore:number;totalTimeSeconds:number}){const db=await getFirebaseDatabase();if(!db)throw new Error('Firebase database is unavailable.');try{await update(ref(db,teamPath(teamCode)),{status:'submitted',submittedAt:serverTimestamp()});}catch(error){throw firebaseError(`Submitting Phase 1 for ${teamCode}`,error);}}
 export async function computePhaseOneResults(){const db=await getFirebaseDatabase();if(!db)throw new Error('Firebase database is unavailable.');const { seedTeams }=await import('@/data/competition');try{const [teamSnapshot,questions,cfg]=await Promise.all([get(ref(db,'teams')),getRoundQuestions(1),getRoundConfig(1)]);const values=teamSnapshot.val() as Record<string,TeamRecord>|null;const questionList=questions.slice(0,cfg.questionCount||30);if(!questionList.length)throw new Error('Round 1 question bank is empty.');const advanceCount=Math.max(1,Math.min(cfg.advanceCount||25,questionList.length));const submitted=values?Object.values(values).filter(t=>t.status==='submitted').map(t=>{const correct=questionList.reduce((n,q)=>n+(t.answers?.[String(q.id)]===q.answer?1:0),0);const integrity=questionList.length?Math.round(correct/questionList.length*100):0;const submittedAt=Number(t.submittedAt??Date.now());const startedAt=Number(t.phase1StartedAt??submittedAt);const totalTimeSeconds=Math.max(0,Math.round((submittedAt-startedAt)/1000));return {...t,recovery:correct,corruption:questionList.length-correct,integrity,netScore:integrity,totalTimeSeconds};}).sort((a,b)=>(b.integrity??0)-(a.integrity??0)||(a.totalTimeSeconds??Infinity)-(b.totalTimeSeconds??Infinity)):[];const finalists=new Set(submitted.slice(0,advanceCount).map(t=>t.teamCode));await Promise.all(seedTeams.map(t=>updateTeam(t.teamCode,{...(finalists.has(t.teamCode)?(submitted.find(s=>s.teamCode===t.teamCode)??{}):{}),advanced:finalists.has(t.teamCode)})));await writeControl('results');return submitted;}catch(error){throw error instanceof Error&&error.message.startsWith('Round 1')?error:firebaseError('Computing Phase 1 results',error);}}
-export async function resetCompetition(){const db=await getFirebaseDatabase();if(!db)throw new Error('Firebase database is unavailable.');const { seedTeams }=await import('@/data/competition');try{const snapshot=await get(ref(db,'teams'));const existing=snapshot.val() as Record<string,TeamRecord>|null;await Promise.all(seedTeams.map(t=>{const current=existing?.[t.teamCode];return set(ref(db,teamPath(t.teamCode)),{...t,accessKey:current?.accessKey??'',status:'connected',answers:{},recovery:0,corruption:0,integrity:0,advanced:false})}));await writeControl('reset');}catch(error){throw firebaseError('Resetting competition',error);}}
+export async function resetCompetition(){const db=await getFirebaseDatabase();if(!db)throw new Error('Firebase database is unavailable.');const { seedTeams }=await import('@/data/competition');try{const snapshot=await get(ref(db,'teams'));const existing=snapshot.val() as Record<string,TeamRecord>|null;await Promise.all(seedTeams.map(t=>{const current=existing?.[t.teamCode];return set(ref(db,teamPath(t.teamCode)),{...t,gmail:current?.gmail??'',password:current?.password??'',status:'connected',answers:{},recovery:0,corruption:0,integrity:0,advanced:false})}));await writeControl('reset');}catch(error){throw firebaseError('Resetting competition',error);}}
